@@ -2,6 +2,7 @@ out
 *.zip
 *.jks
 *.apk
+!app-debug.apk
 *.log
 /config.prop
 /notes.md
