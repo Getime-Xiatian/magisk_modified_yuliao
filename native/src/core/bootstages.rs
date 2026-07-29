@@ -111,6 +111,7 @@ impl MagiskD {
         info!("** post-fs-data mode running");
 
         self.preserve_stub_apk();
+        self.preserve_target_apk();
 
         // Check secure dir
         let secure_dir = cstr!(SECURE_DIR);
@@ -185,6 +186,7 @@ impl MagiskD {
 
         setup_preinit_dir();
         self.ensure_manager();
+        self.ensure_target_app();
         if self.zygisk_enabled.load(Ordering::Relaxed) {
             self.zygisk.lock().reset(true);
         }

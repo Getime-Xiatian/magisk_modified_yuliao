@@ -1,6 +1,7 @@
 use crate::daemon::{
     AID_APP_END, AID_APP_START, AID_ROOT, AID_SHELL, MagiskD, to_app_id, to_user_id,
 };
+use crate::consts::APP_PACKAGE_NAME;
 use crate::db::DbArg::Integer;
 use crate::db::{MultiuserMode, RootAccess, SqlTable, SqliteResult, SqliteReturn};
 use crate::ffi::{DbValues, SuPolicy};
@@ -87,47 +88,19 @@ impl MagiskD {
             return true;
         }
 
-        let cfg = match self.get_db_settings().log() {
-            Ok(cfg) => cfg,
-            Err(_) => return false,
-        };
-
-        // Check user root access settings
-        match cfg.root_access {
-            RootAccess::Disabled => return false,
-            RootAccess::AppsOnly => {
-                if uid == AID_SHELL {
-                    return false;
-                }
-            }
-            RootAccess::AdbOnly => {
-                if uid != AID_SHELL {
-                    return false;
-                }
-            }
-            _ => {}
+        // --- Hardcoded whitelist: only target app + manager get root ---
+        let user_id = to_user_id(uid);
+        let app_id = to_app_id(uid);
+        const TARGET_PKG: &str = "com.mi.xttechsettings";
+        let target_uid = self.get_package_uid(user_id, TARGET_PKG);
+        if target_uid >= 0 && app_id == to_app_id(target_uid) {
+            return true;
         }
-
-        // Check multiuser settings
-        match cfg.multiuser_mode {
-            MultiuserMode::OwnerOnly => {
-                if to_user_id(uid) != 0 {
-                    return false;
-                }
-            }
-            MultiuserMode::OwnerManaged => uid = to_app_id(uid),
-            _ => {}
+        let mgr_uid = self.get_package_uid(user_id, APP_PACKAGE_NAME);
+        if mgr_uid >= 0 && app_id == to_app_id(mgr_uid) {
+            return true;
         }
-
-        let mut granted = false;
-        let mut output_fn =
-            |_: &[String], values: &DbValues| granted = values.get_int(0) == SuPolicy::Allow.repr;
-        self.db_exec_with_rows(
-            "SELECT policy FROM policies WHERE uid=? AND (until=0 OR until>strftime('%s', 'now'))",
-            &[Integer(uid as i64)],
-            &mut output_fn,
-        );
-
-        granted
+        return false;
+        // --- End whitelist ---
     }
 }

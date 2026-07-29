@@ -3,10 +3,10 @@ plugins {
 }
 
 android {
-    namespace = "com.topjohnwu.magisk.test"
+    namespace = "andro.pluginsuite.test"
 
     defaultConfig {
-        applicationId = "com.topjohnwu.magisk.test"
+        applicationId = "andro.pluginsuite.test"
         versionCode = 1
         versionName = "1.0"
         proguardFile("proguard-rules.pro")

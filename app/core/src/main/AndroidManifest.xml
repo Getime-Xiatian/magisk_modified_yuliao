@@ -13,7 +13,6 @@
 
     <application
         android:name=".App"
-        android:icon="@drawable/ic_launcher"
         tools:ignore="UnusedAttribute,GoogleAppIndexingWarning"
         tools:remove="android:appComponentFactory">
 

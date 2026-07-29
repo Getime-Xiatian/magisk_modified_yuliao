@@ -6,11 +6,11 @@
 
         <variable
             name="item"
-            type="com.topjohnwu.magisk.view.MagiskDialog.DialogItem" />
+            type="andro.pluginsuite.view.MagiskDialog.DialogItem" />
 
         <variable
             name="listener"
-            type="com.topjohnwu.magisk.view.MagiskDialog.DialogClickListener" />
+            type="andro.pluginsuite.view.MagiskDialog.DialogClickListener" />
 
     </data>
 

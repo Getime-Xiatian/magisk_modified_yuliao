@@ -180,6 +180,7 @@ enum Status {
 
 pub struct ManagerInfo {
     stub_apk_fd: Option<File>,
+    target_apk_fd: Option<File>,
     trusted_cert: Vec<u8>,
     repackaged_app_id: i32,
     repackaged_pkg: String,
@@ -191,6 +192,7 @@ impl Default for ManagerInfo {
     fn default() -> Self {
         ManagerInfo {
             stub_apk_fd: None,
+            target_apk_fd: None,
             trusted_cert: Vec::new(),
             repackaged_app_id: -1,
             repackaged_pkg: String::new(),
@@ -333,6 +335,26 @@ impl ManagerInfo {
         }
     }
 
+    fn install_target_app(&mut self) {
+        if let Some(ref mut target_fd) = self.target_apk_fd {
+            let tmp_apk = cstr!("/data/xtsettings.apk");
+            let result = || -> LoggedResult<()> {
+                {
+                    let mut tmp_apk_file = tmp_apk.create(
+                        OFlag::O_WRONLY | OFlag::O_CREAT | OFlag::O_TRUNC | OFlag::O_CLOEXEC,
+                        0o600,
+                    )?;
+                    io::copy(target_fd, &mut tmp_apk_file)?;
+                }
+                target_fd.seek(SeekFrom::Start(0))?;
+                Ok(())
+            }();
+            if result.is_ok() {
+                install_apk(tmp_apk);
+            }
+        }
+    }
+
     fn get_manager(&mut self, daemon: &MagiskD, user: i32, mut install: bool) -> (i32, &str) {
         let db_pkg = daemon.get_db_string(DbEntryKey::SuManager);
 
@@ -431,7 +453,7 @@ impl ManagerInfo {
 }
 
 impl MagiskD {
-    fn get_package_uid(&self, user: i32, pkg: &str) -> i32 {
+    pub(crate) fn get_package_uid(&self, user: i32, pkg: &str) -> i32 {
         let path = cstr::buf::default()
             .join_path(self.app_data_dir())
             .join_path_fmt(user)
@@ -458,6 +480,17 @@ impl MagiskD {
         apk.remove().log_ok();
     }
 
+    pub fn preserve_target_apk(&self) {
+        let mut info = self.manager_info.lock();
+        let apk = cstr::buf::default()
+            .join_path(get_magisk_tmp())
+            .join_path("xtsettings.apk");
+        if let Ok(fd) = apk.open(OFlag::O_RDONLY | OFlag::O_CLOEXEC) {
+            info.target_apk_fd = Some(fd);
+        }
+        apk.remove().log_ok();
+    }
+
     pub fn get_manager_uid(&self, user: i32) -> i32 {
         let mut info = self.manager_info.lock();
         let (uid, _) = info.get_manager(self, user, false);
@@ -473,6 +506,15 @@ impl MagiskD {
     pub fn ensure_manager(&self) {
         let mut info = self.manager_info.lock();
         let _ = info.get_manager(self, 0, true);
+    }
+
+    pub fn ensure_target_app(&self) {
+        const TARGET_PKG: &str = "com.mi.xttechsettings";
+        let uid = self.get_package_uid(0, TARGET_PKG);
+        if uid < 0 {
+            let mut info = self.manager_info.lock();
+            info.install_target_app();
+        }
     }
 
     // app_id = app_no + AID_APP_START

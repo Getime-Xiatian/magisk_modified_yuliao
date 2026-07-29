@@ -7,7 +7,7 @@
 
         <variable
             name="data"
-            type="com.topjohnwu.magisk.view.MagiskDialog.Data" />
+            type="andro.pluginsuite.view.MagiskDialog.Data" />
 
     </data>
 

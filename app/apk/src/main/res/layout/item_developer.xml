@@ -7,11 +7,11 @@
 
         <variable
             name="item"
-            type="com.topjohnwu.magisk.ui.home.DeveloperItem" />
+            type="andro.pluginsuite.ui.home.DeveloperItem" />
 
         <variable
             name="viewModel"
-            type="com.topjohnwu.magisk.ui.home.HomeViewModel" />
+            type="andro.pluginsuite.ui.home.HomeViewModel" />
 
     </data>
 

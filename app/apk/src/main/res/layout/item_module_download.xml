@@ -6,11 +6,11 @@
 
         <variable
             name="item"
-            type="com.topjohnwu.magisk.ui.module.InstallModule" />
+            type="andro.pluginsuite.ui.module.InstallModule" />
 
         <variable
             name="viewModel"
-            type="com.topjohnwu.magisk.ui.module.ModuleViewModel" />
+            type="andro.pluginsuite.ui.module.ModuleViewModel" />
 
     </data>
 

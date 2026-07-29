@@ -274,10 +274,10 @@ fun Project.setupMainApk() {
     setupAppCommon()
 
     androidApp {
-        namespace = "com.topjohnwu.magisk"
+        namespace = "andro.pluginsuite"
 
         defaultConfig {
-            applicationId = "com.topjohnwu.magisk"
+            applicationId = "andro.pluginsuite"
             vectorDrawables.useSupportLibrary = true
             versionName = Config.version
             versionCode = Config.versionCode

@@ -7,7 +7,7 @@
 
         <variable
             name="data"
-            type="com.topjohnwu.magisk.ui.settings.DownloadPath" />
+            type="andro.pluginsuite.ui.settings.DownloadPath" />
 
     </data>
 

@@ -5,7 +5,7 @@ plugins {
 setupCommon()
 
 android {
-    namespace = "com.topjohnwu.magisk"
+    namespace = "andro.pluginsuite"
     enableKotlin = false
 
     buildTypes {

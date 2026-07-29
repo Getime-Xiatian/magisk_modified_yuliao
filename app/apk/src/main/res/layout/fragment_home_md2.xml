@@ -5,15 +5,15 @@
 
     <data>
 
-        <import type="com.topjohnwu.magisk.core.Info" />
+        <import type="andro.pluginsuite.core.Info" />
 
-        <import type="com.topjohnwu.magisk.ui.home.DeveloperItem" />
+        <import type="andro.pluginsuite.ui.home.DeveloperItem" />
 
-        <import type="com.topjohnwu.magisk.ui.home.IconLink" />
+        <import type="andro.pluginsuite.ui.home.IconLink" />
 
         <variable
             name="viewModel"
-            type="com.topjohnwu.magisk.ui.home.HomeViewModel" />
+            type="andro.pluginsuite.ui.home.HomeViewModel" />
 
     </data>
 

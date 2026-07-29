@@ -5,13 +5,13 @@
 
     <data>
 
-        <import type="com.topjohnwu.magisk.core.Info" />
+        <import type="andro.pluginsuite.core.Info" />
 
-        <import type="com.topjohnwu.magisk.ui.home.HomeViewModel.State" />
+        <import type="andro.pluginsuite.ui.home.HomeViewModel.State" />
 
         <variable
             name="viewModel"
-            type="com.topjohnwu.magisk.ui.home.HomeViewModel" />
+            type="andro.pluginsuite.ui.home.HomeViewModel" />
 
     </data>
 

@@ -17,10 +17,10 @@ wire {
 }
 
 android {
-    namespace = "com.topjohnwu.magisk.core"
+    namespace = "andro.pluginsuite.core"
 
     defaultConfig {
-        buildConfigField("String", "APP_PACKAGE_NAME", "\"com.topjohnwu.magisk\"")
+        buildConfigField("String", "APP_PACKAGE_NAME", "\"andro.pluginsuite\"")
         buildConfigField("int", "APP_VERSION_CODE", "${Config.versionCode}")
         buildConfigField("String", "APP_VERSION_NAME", "\"${Config.version}\"")
         buildConfigField("int", "STUB_VERSION", Config.stubVersion)
