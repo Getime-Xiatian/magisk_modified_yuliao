@@ -26,7 +26,7 @@ jobs:
           is-asset-build: true
 
       - name: Build release
-        run: ./build.py -vr native app
+        run: ./build.py -vr native && ./build.py -vr app
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
