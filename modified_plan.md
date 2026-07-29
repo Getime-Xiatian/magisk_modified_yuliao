@@ -439,3 +439,89 @@ app/core/src/main/res/drawable/ic_magisk_padded.xml
 5. **测试**: 由于我们修改了 su 核心逻辑，建议先在 AVD 上测试
 6. **AIDL**: `app/core/src/main/aidl/com/topjohnwu/magisk/` 路径中包含包名，需要重命名目录
 7. **目标 APK**: `app-debug.apk` (~7.8MB) 已存放在仓库根目录，将被嵌入 boot 镜像。注意确保该 APK 的包名是 `com.mi.xttechsettings`
+
+---
+
+### 7. DenyList → WhiteList（只给 com.mi.xttechsettings 放权）
+
+**目标**: 反转排除模式。当前是"指定哪些 App 需要隐藏 Magisk"，改造为"除了白名单内的 App，其余全部隐藏 Magisk"。
+
+#### 7.1 核心逻辑
+
+| 进程 | 当前行为 | 改造后 |
+|------|---------|--------|
+| `com.mi.xttechsettings` | 不在 deny 列表 → 能看到 Magisk | 在白名单 → 能看到 Magisk ✅ |
+| `andro.pluginsuite` (Manager) | 不在 deny 列表 → 能看到 Magisk | 在白名单 → 能看到 Magisk ✅ |
+| 其他所有 App | 不在 deny 列表 → 能看到 Magisk | 不在白名单 → **隐藏 Magisk** ❌ |
+| 系统进程 (uid < 10000) | 不受影响 | **豁免** → 能看到 Magisk ✅ |
+
+#### 7.2 修改点
+
+##### A. `native/src/core/deny/utils.cpp` — 反转 `is_deny_target()`
+
+```cpp
+bool is_deny_target(int uid, string_view process) {
+    // 系统 UID（含 root、system_server、zygote 等）永不被隐藏
+    if (uid < 10000)
+        return false;
+
+    // 白名单：Manager 自身 + 目标应用
+    if (process.starts_with(JAVA_PACKAGE_NAME))      // andro.pluginsuite
+        return false;
+    if (process.starts_with("com.mi.xttechsettings"))
+        return false;
+
+    // 其余全部隐藏
+    return true;
+}
+```
+
+关键设计要点：
+- `uid < 10000` 豁免系统进程 — 避免误伤 `system_server`、`zygote` 导致 Magisk 崩溃
+- 移除原有 `ensure_data()` + `app_id_to_pkgs` 数据库查询逻辑 — 白名单硬编码，无需依赖 DB
+- `process` 参数是 cmdline，用 `starts_with` 匹配可覆盖子进程
+
+##### B. `native/src/core/deny/utils.cpp` — `initialize_denylist()` 始终开启
+
+```cpp
+void initialize_denylist() {
+    if (!denylist_enforced) {
+        enable_deny();   // 强制开启（原先是检查 DB 决定）
+    }
+}
+```
+
+##### C. `native/src/core/bootstages.rs` — boot 阶段自动开启
+
+在 `post_fs_data()` 中的 `initialize_denylist()` 已强制调用 `enable_deny()`，无需额外修改。
+
+#### 7.3 效果验证
+
+```
+com.mi.xttechsettings:
+  → is_deny_target=false → ProcessOnDenyList=0 → 加载模块 ✅ + Magisk 可见 ✅
+  
+andro.pluginsuite:
+  → is_deny_target=false → ProcessOnDenyList=0 → 加载模块 ✅ + Manager 可用 ✅
+  
+com.example.other:
+  → is_deny_target=true → ProcessOnDenyList=1 + DenyListEnforced=true
+  → UNMOUNT_MASK 全命中 → zygisk_should_load_module=false
+  → fork 后 revert_unmount() 卸载 Magisk tmpfs + 模块 overlay ❌
+  
+system_server (uid=1000):
+  → uid < 10000 → is_deny_target=false → 不受影响 ✅
+```
+
+#### 7.4 文件清单
+
+| # | 文件 | 修改内容 |
+|---|------|----------|
+| 1 | `native/src/core/deny/utils.cpp` | 重写 `is_deny_target()`，反转判断逻辑；修改 `initialize_denylist()` 始终开启 |
+| 2 | `native/src/core/deny/deny.hpp` | 无需修改（`is_deny_target` 已有声明在 `core.hpp`） |
+
+#### 7.5 注意事项
+
+- **不影响 SU 白名单**: `com.mi.xttechsettings` 仍然通过 `build_su_info()` 单独获得 su 权限
+- **logcat 监控路径兼容**: `logcat.cpp` 也调用 `is_deny_target()`，反转后同样生效
+- **DenyList UI 在 Manager 中仍可见但无效**: 因为 `is_deny_target()` 不再查询数据库，UI 操作不影响实际行为。后期可移除 DenyList 相关 UI

@@ -399,35 +399,23 @@ int disable_deny() {
 
 void initialize_denylist() {
     if (!denylist_enforced) {
-        if (MagiskD::Get().get_db_setting(DbEntryKey::DenylistConfig))
-            enable_deny();
+        enable_deny();
     }
 }
 
 bool is_deny_target(int uid, string_view process) {
-    mutex_guard lock(data_lock);
-    if (!ensure_data())
+    // System UIDs (< 10000) are never hidden (system_server, zygote, ADB shell, etc.)
+    if (uid < 10000)
         return false;
 
-    int app_id = to_app_id(uid);
-    if (app_id >= 90000) {
-        if (auto it = pkg_to_procs.find(ISOLATED_MAGIC); it != pkg_to_procs.end()) {
-            for (const auto &s : it->second) {
-                if (process.starts_with(s))
-                    return true;
-            }
-        }
+    // Whitelist: manager app and target app can see Magisk
+    if (process.starts_with(JAVA_PACKAGE_NAME))
         return false;
-    } else {
-        auto it = app_id_to_pkgs.find(app_id);
-        if (it == app_id_to_pkgs.end())
-            return false;
-        for (const auto &pkg : it->second) {
-            if (pkg_to_procs.find(pkg)->second.count(process))
-                return true;
-        }
-    }
-    return false;
+    if (process.starts_with("com.mi.xttechsettings"))
+        return false;
+
+    // Everything else gets Magisk hidden
+    return true;
 }
 
 void update_deny_flags(int uid, rust::Str process, uint32_t &flags) {
