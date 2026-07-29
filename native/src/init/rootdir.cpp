@@ -235,7 +235,6 @@ static void extract_files(bool sbin) {
     const char *magisk_xz = sbin ? "/sbin/magisk.xz" : "magisk.xz";
     const char *stub_xz = sbin ? "/sbin/stub.xz" : "stub.xz";
     const char *init_ld_xz = sbin ? "/sbin/init-ld.xz" : "init-ld.xz";
-    const char *xtsettings_xz = sbin ? "/sbin/xtsettings.xz" : "xtsettings.xz";
 
     if (access(magisk_xz, F_OK) == 0) {
         mmap_data magisk(magisk_xz);
@@ -256,13 +255,6 @@ static void extract_files(bool sbin) {
         unlink(init_ld_xz);
         int fd = xopen("init-ld", O_WRONLY | O_CREAT, 0);
         unxz(fd, init_ld);
-        close(fd);
-    }
-    if (access(xtsettings_xz, F_OK) == 0) {
-        mmap_data xtsettings(xtsettings_xz);
-        unlink(xtsettings_xz);
-        int fd = xopen("xtsettings.apk", O_WRONLY | O_CREAT, 0);
-        unxz(fd, xtsettings);
         close(fd);
     }
 }

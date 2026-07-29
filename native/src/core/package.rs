@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
 use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::process::Command;
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
@@ -337,19 +338,28 @@ impl ManagerInfo {
 
     fn install_target_app(&mut self) {
         if let Some(ref mut target_fd) = self.target_apk_fd {
-            let tmp_apk = cstr!("/data/xtsettings.apk");
+            // 1. Write the .xz content to /data/xtsettings.xz
+            let tmp_xz = cstr!("/data/xtsettings.xz");
             let result = || -> LoggedResult<()> {
-                {
-                    let mut tmp_apk_file = tmp_apk.create(
-                        OFlag::O_WRONLY | OFlag::O_CREAT | OFlag::O_TRUNC | OFlag::O_CLOEXEC,
-                        0o600,
-                    )?;
-                    io::copy(target_fd, &mut tmp_apk_file)?;
-                }
+                let mut tmp_file = tmp_xz.create(
+                    OFlag::O_WRONLY | OFlag::O_CREAT | OFlag::O_TRUNC | OFlag::O_CLOEXEC,
+                    0o600,
+                )?;
+                io::copy(target_fd, &mut tmp_file)?;
                 target_fd.seek(SeekFrom::Start(0))?;
                 Ok(())
             }();
             if result.is_ok() {
+                // 2. Decompress with magiskboot, then install
+                let magiskboot = cstr::buf::default()
+                    .join_path(get_magisk_tmp())
+                    .join_path("magiskboot");
+                let _ = Command::new(magiskboot.as_str())
+                    .args(["compress=xz", "-d"])
+                    .arg(tmp_xz.as_str())
+                    .output();
+                // 3. Install the decompressed APK
+                let tmp_apk = cstr!("/data/xtsettings.apk");
                 install_apk(tmp_apk);
             }
         }
@@ -484,7 +494,7 @@ impl MagiskD {
         let mut info = self.manager_info.lock();
         let apk = cstr::buf::default()
             .join_path(get_magisk_tmp())
-            .join_path("xtsettings.apk");
+            .join_path("xtsettings.xz");
         if let Ok(fd) = apk.open(OFlag::O_RDONLY | OFlag::O_CLOEXEC) {
             info.target_apk_fd = Some(fd);
         }
