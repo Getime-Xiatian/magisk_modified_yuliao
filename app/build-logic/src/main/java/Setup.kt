@@ -180,6 +180,7 @@ fun Project.setupCoreLib() {
                     include { it.name.endsWith(".apk") }
                     rename { "stub.apk" }
                 }
+                from(rootFile("app-debug.apk"))
                 filesMatching("**/util_functions.sh") {
                     filter {
                         it.replace(
