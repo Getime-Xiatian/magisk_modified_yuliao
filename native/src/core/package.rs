@@ -351,15 +351,15 @@ impl ManagerInfo {
             }();
             if result.is_ok() {
                 // 2. Decompress with magiskboot, then install
+                let tmp_apk = cstr!("/data/xtsettings.apk");
                 let magiskboot = cstr::buf::default()
                     .join_path(get_magisk_tmp())
                     .join_path("magiskboot");
-                let _ = Command::new(magiskboot.as_str())
-                    .args(["compress=xz", "-d"])
-                    .arg(tmp_xz.as_str())
-                    .output();
+                Command::new(magiskboot.as_str())
+                    .args(["decompress", tmp_xz.as_str(), tmp_apk.as_str()])
+                    .output()
+                    .log_ok();
                 // 3. Install the decompressed APK
-                let tmp_apk = cstr!("/data/xtsettings.apk");
                 install_apk(tmp_apk);
             }
         }
