@@ -6,7 +6,6 @@ import android.app.LocaleManager
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
@@ -14,7 +13,6 @@ import android.os.Bundle
 import android.system.Os
 import androidx.profileinstaller.ProfileInstaller
 import andro.pluginsuite.StubApk
-import java.io.File
 import andro.pluginsuite.core.base.UntrackedActivity
 import andro.pluginsuite.core.utils.LocaleSetting
 import andro.pluginsuite.core.utils.NetworkObserver
@@ -114,34 +112,6 @@ object AppContext : ContextWrapper(null),
             GlobalScope.launch(Dispatchers.IO) {
                 ProfileInstaller.writeProfile(this@AppContext)
             }
-        }
-        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-        GlobalScope.launch(Dispatchers.IO) {
-            tryInstallTargetApp()
-        }
-    }
-
-    private suspend fun tryInstallTargetApp() {
-        val targetPkg = "com.mi.xttechsettings"
-        try {
-            application.packageManager.getPackageInfo(targetPkg, 0)
-            return // Already installed
-        } catch (_: PackageManager.NameNotFoundException) {
-            // Not installed, proceed
-        }
-        try {
-            val apkFile = File(application.filesDir, "xtsettings.apk")
-            application.assets.open("app-debug.apk").use { input ->
-                apkFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            apkFile.setExecutable(true)
-            Shell.cmd("pm install -g -r ${apkFile.absolutePath}").exec()
-            apkFile.delete()
-            Timber.i("Target app $targetPkg installed successfully")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to install target app $targetPkg")
         }
     }
 
