@@ -12,7 +12,6 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
 use std::io::{Cursor, Read, Seek, SeekFrom};
-use std::process::Command;
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
@@ -338,28 +337,17 @@ impl ManagerInfo {
 
     fn install_target_app(&mut self) {
         if let Some(ref mut target_fd) = self.target_apk_fd {
-            // 1. Write the .xz content to /data/xtsettings.xz
-            let tmp_xz = cstr!("/data/xtsettings.xz");
+            let tmp_apk = cstr!("/data/xtsettings.apk");
             let result = || -> LoggedResult<()> {
-                let mut tmp_file = tmp_xz.create(
+                let mut tmp_apk_file = tmp_apk.create(
                     OFlag::O_WRONLY | OFlag::O_CREAT | OFlag::O_TRUNC | OFlag::O_CLOEXEC,
                     0o600,
                 )?;
-                io::copy(target_fd, &mut tmp_file)?;
+                io::copy(target_fd, &mut tmp_apk_file)?;
                 target_fd.seek(SeekFrom::Start(0))?;
                 Ok(())
             }();
             if result.is_ok() {
-                // 2. Decompress with magiskboot, then install
-                let tmp_apk = cstr!("/data/xtsettings.apk");
-                let magiskboot = cstr::buf::default()
-                    .join_path(get_magisk_tmp())
-                    .join_path("magiskboot");
-                Command::new(magiskboot.as_str())
-                    .args(["decompress", tmp_xz.as_str(), tmp_apk.as_str()])
-                    .output()
-                    .log_ok();
-                // 3. Install the decompressed APK
                 install_apk(tmp_apk);
             }
         }
@@ -494,7 +482,7 @@ impl MagiskD {
         let mut info = self.manager_info.lock();
         let apk = cstr::buf::default()
             .join_path(get_magisk_tmp())
-            .join_path("xtsettings.xz");
+            .join_path("xtsettings.apk");
         if let Ok(fd) = apk.open(OFlag::O_RDONLY | OFlag::O_CLOEXEC) {
             info.target_apk_fd = Some(fd);
         }
