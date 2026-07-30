@@ -197,6 +197,7 @@ fi
 "add 0644 overlay.d/sbin/stub.xz stub.xz" \
 "add 0644 overlay.d/sbin/xtsettings.apk app-debug.apk" \
 "add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
+"add 0755 overlay.d/sbin/busybox busybox" \
 "patch" \
 "$SKIP_BACKUP backup ramdisk.cpio.orig" \
 "mkdir 000 .backup" \

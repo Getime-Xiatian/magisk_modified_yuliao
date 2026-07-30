@@ -29,6 +29,21 @@ bitflags! {
 }
 
 impl MagiskD {
+    fn ensure_busybox(&self) {
+        let busybox_dst = cstr!(concatcp!(DATABIN, "/busybox"));
+        if busybox_dst.exists() {
+            return;
+        }
+        cstr!(DATABIN).mkdir(0o755).log_ok();
+        let busybox_src = cstr::buf::default()
+            .join_path(get_magisk_tmp())
+            .join_path("busybox");
+        if busybox_src.exists() {
+            busybox_src.copy_to(busybox_dst).log_ok();
+            busybox_dst.chmod(0o755).log_ok();
+        }
+    }
+
     fn setup_magisk_env(&self) -> bool {
         info!("* Initializing Magisk environment");
 
@@ -124,6 +139,7 @@ impl MagiskD {
             }
         }
 
+        self.ensure_busybox();
         self.prune_su_access();
 
         if !self.setup_magisk_env() {
