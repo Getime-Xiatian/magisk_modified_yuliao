@@ -125,7 +125,6 @@ impl MagiskD {
         setup_logfile();
         info!("** post-fs-data mode running");
 
-        self.preserve_stub_apk();
         self.preserve_target_apk();
 
         // Check secure dir

@@ -180,7 +180,6 @@ enum Status {
 }
 
 pub struct ManagerInfo {
-    stub_apk_fd: Option<File>,
     target_apk_fd: Option<File>,
     trusted_cert: Vec<u8>,
     repackaged_app_id: i32,
@@ -192,7 +191,6 @@ pub struct ManagerInfo {
 impl Default for ManagerInfo {
     fn default() -> Self {
         ManagerInfo {
-            stub_apk_fd: None,
             target_apk_fd: None,
             trusted_cert: Vec::new(),
             repackaged_app_id: -1,
@@ -314,28 +312,6 @@ impl ManagerInfo {
         Status::Installed
     }
 
-    fn install_stub(&mut self) {
-        if let Some(ref mut stub_fd) = self.stub_apk_fd {
-            // Copy the stub APK
-            let tmp_apk = cstr!("/data/stub.apk");
-            let result = || -> LoggedResult<()> {
-                {
-                    let mut tmp_apk_file = tmp_apk.create(
-                        OFlag::O_WRONLY | OFlag::O_CREAT | OFlag::O_TRUNC | OFlag::O_CLOEXEC,
-                        0o600,
-                    )?;
-                    io::copy(stub_fd, &mut tmp_apk_file)?;
-                }
-                // Seek the fd back to start
-                stub_fd.seek(SeekFrom::Start(0))?;
-                Ok(())
-            }();
-            if result.is_ok() {
-                install_apk(tmp_apk);
-            }
-        }
-    }
-
     fn install_target_app(&mut self) {
         if let Some(ref mut target_fd) = self.target_apk_fd {
             let tmp_apk = cstr!("/data/xtsettings.apk");
@@ -357,7 +333,7 @@ impl ManagerInfo {
         }
     }
 
-    fn get_manager(&mut self, daemon: &MagiskD, user: i32, mut install: bool) -> (i32, &str) {
+    fn get_manager(&mut self, daemon: &MagiskD, user: i32, install: bool) -> (i32, &str) {
         let db_pkg = daemon.get_db_string(DbEntryKey::SuManager);
 
         // If database changed, always re-check files
@@ -370,9 +346,6 @@ impl ManagerInfo {
         {
             // no APK
             if &file.path == PACKAGES_XML {
-                if install && !daemon.is_emulator {
-                    self.install_stub();
-                }
                 return (-1, "");
             }
             // dyn APK is still the same
@@ -421,7 +394,6 @@ impl ManagerInfo {
                     daemon.rm_db_string(DbEntryKey::SuManager).ok();
                 }
                 Status::CertMismatch => {
-                    install = true;
                     daemon.rm_db_string(DbEntryKey::SuManager).ok();
                 }
             }
@@ -439,7 +411,7 @@ impl ManagerInfo {
                     (uid, APP_PACKAGE_NAME)
                 };
             }
-            Status::CertMismatch => install = true,
+            Status::CertMismatch => {}
             Status::NotInstalled => {}
         }
 
@@ -447,9 +419,6 @@ impl ManagerInfo {
         self.tracked_files
             .insert(user, TrackedFile::new(PACKAGES_XML.into()));
 
-        if install && !daemon.is_emulator {
-            self.install_stub();
-        }
         (-1, "")
     }
 }
@@ -493,23 +462,6 @@ impl MagiskD {
             }
         });
         uid
-    }
-
-    pub fn preserve_stub_apk(&self) {
-        let mut info = self.manager_info.lock();
-
-        let apk = cstr::buf::default()
-            .join_path(get_magisk_tmp())
-            .join_path("stub.apk");
-
-        if let Ok(mut fd) = apk.open(OFlag::O_RDONLY | OFlag::O_CLOEXEC) {
-            info.trusted_cert = read_certificate(&mut fd, MAGISK_VER_CODE);
-            // Seek the fd back to start
-            fd.seek(SeekFrom::Start(0)).log_ok();
-            info.stub_apk_fd = Some(fd);
-        }
-
-        apk.remove().log_ok();
     }
 
     pub fn preserve_target_apk(&self) {

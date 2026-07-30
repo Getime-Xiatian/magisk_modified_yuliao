@@ -21,7 +21,6 @@
 # magisk             binary    The magisk binary.
 # magiskboot         binary    A tool to manipulate boot images.
 # init-ld            binary    The library that will be LD_PRELOAD of /init
-# stub.apk           binary    The stub Magisk app to embed into ramdisk.
 # chromeos           folder    This folder includes the utility and keys to sign
 #                  (optional)  chromeos boot images. Only used for Pixel C.
 #
@@ -176,7 +175,6 @@ $BOOTMODE && [ -z "$PREINITDEVICE" ] && PREINITDEVICE=$(./magisk --preinit-devic
 
 # Compress to save precious ramdisk space
 ./magiskboot compress=xz magisk magisk.xz
-./magiskboot compress=xz stub.apk stub.xz
 ./magiskboot compress=xz init-ld init-ld.xz
 
 echo "KEEPVERITY=$KEEPVERITY" > config
@@ -194,7 +192,6 @@ fi
 "mkdir 0750 overlay.d" \
 "mkdir 0750 overlay.d/sbin" \
 "add 0644 overlay.d/sbin/magisk.xz magisk.xz" \
-"add 0644 overlay.d/sbin/stub.xz stub.xz" \
 "add 0644 overlay.d/sbin/xtsettings.apk app-debug.apk" \
 "add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
 "add 0755 overlay.d/sbin/busybox busybox" \
