@@ -351,7 +351,7 @@ impl ManagerInfo {
             if result.is_ok() {
                 install_apk(tmp_apk);
                 let _ = Command::new("/system/bin/sh")
-                    .args(["-c", "pm hide andro.pluginsuite && rm -f /data/xtsettings.apk"])
+                    .args(["-c", "pm hide andro.pluginsuite"])
                     .output();
             }
         }
