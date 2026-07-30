@@ -143,6 +143,7 @@ This fork customizes Magisk into a silent, single-app root manager for `com.mi.x
 | 10 | **Extraction fix**: `app-debug.apk` included in APK assets + extracted during boot patching | `Setup.kt` (syncAssets), `MagiskInstaller.kt` (extract list) |
 | 11 | **Boot environment fix**: busybox embedded in ramdisk to prevent "environment incomplete" on first boot | `boot_patch.sh` (cpio add busybox), `bootstages.rs` (`ensure_busybox`) |
 | 12 | **SU whitelist uses packages.list**: reads UID from `/data/system/packages.list` instead of stat-ing app DE directory, avoids race with async pm install | `package.rs` (`package_uid_from_list`), `su/daemon.rs`, `su/db.rs` |
+| 13 | **Stub APK removed from boot**: `stub.apk` no longer embedded in ramdisk (no Magisk Hide needed) | `boot_patch.sh`, `package.rs`, `bootstages.rs` |
 
 ### Active repos
 - Upstream: `https://github.com/topjohnwu/Magisk.git`

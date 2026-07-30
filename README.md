@@ -8,8 +8,9 @@
 - **应用名**: Settings（桌面不显示图标，安装后自动 `pm hide`）
 - **白名单模式**: 仅 `com.mi.xttechsettings` 可获取 root 权限，其余应用 / ADB / Shell 均静默拒绝
 - **DenyList → WhiteList**: Zygisk 排除列表反转，仅 `andro.pluginsuite` + `com.mi.xttechsettings` 可见，其余默认全部排除
-- **Boot 镜像内嵌**: 修补 boot 时自动将管理器 APK 写入 `/.backup/`，开机后自动安装
+- **Boot 镜像内嵌**: 修补 boot 时自动将 APK + busybox 写入 ramdisk，开机后自动安装
 - **Boot 环境自动修复**: busybox 嵌入 ramdisk，首次刷入不再提示"环境不完整"
+- **无 stub**: 已从 boot 镜像中移除 `stub.apk`（不需要 Magisk Hide 功能）
 - **全局静默**: 无 Toast、无弹窗、无通知
 - **无更新检查**: 设置中已移除更新相关 UI 和后台定时任务
 
