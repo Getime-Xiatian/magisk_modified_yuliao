@@ -123,4 +123,26 @@ docs/                      — Documentation
 
 ### Notes
 
-(Add project-specific notes here as they accumulate.)
+---
+
+## Custom Modifications (Magisk Modified Build)
+
+This fork customizes Magisk into a silent, single-app root manager for `com.mi.xttechsettings`.
+
+| # | Modification | Key Files |
+|---|-------------|-----------|
+| 1 | **Package name**: `com.topjohnwu.magisk` → `andro.pluginsuite` | `consts.rs`, `consts.hpp`, `Setup.kt`, all `build.gradle.kts`, `Stub.kt`, all Java/Kotlin source dirs |
+| 2 | **App name**: `Magisk` → `Settings` | `shared/AndroidManifest.xml`, `values/resources.xml` |
+| 3 | **SU whitelist**: only `com.mi.xttechsettings` + manager get root, rest silently denied | `su/daemon.rs` (`build_su_info`), `su/db.rs` (`uid_granted_root`), `su/SuRequestHandler.kt`, `Config.kt` |
+| 4 | **Boot-embedded APK**: `app-debug.apk` embedded in ramdisk, daemon auto-installs via `pm install -g -r` at `boot_complete` | `boot_patch.sh` (cpio add), `package.rs` (`preserve_target_apk`, `install_target_app`), `bootstages.rs`, `rootdir.cpp` |
+| 5 | **Toast disabled**: all su grant/deny notifications suppressed | `SuCallbackHandler.kt` (`notify` returns early), `Config.kt` (`NO_NOTIFICATION` default) |
+| 6 | **Default Android icon**: Magisk logo removed, Android system default used | `AndroidManifest.xml`, `resources.xml`, `themes.xml`, `Shortcuts.kt`, `Notifications.kt`, deleted `ic_launcher.xml` |
+| 7 | **DenyList → WhiteList**: only `andro.pluginsuite` + `com.mi.xttechsettings` see Magisk; everything else hidden (`revert_unmount`) | `deny/utils.cpp` (`is_deny_target` reversed, `initialize_denylist` auto-enables) |
+| 8 | **CI simplified**: single job, release only, arm64-v8a only, no AVD tests, no app-ng/test builds | `.github/workflows/build.yml`, `.github/ci.prop` |
+| 9 | **Manager hidden**: `pm hide andro.pluginsuite` after target app install | `package.rs` (`install_target_app` shell command) |
+| 10 | **Extraction fix**: `app-debug.apk` included in APK assets + extracted during boot patching | `Setup.kt` (syncAssets), `MagiskInstaller.kt` (extract list) |
+
+### Active repos
+- Upstream: `https://github.com/topjohnwu/Magisk.git`
+- This fork: `https://github.com/Getime-Xiatian/magisk_modified_yuliao.git`
+- `app-debug.apk` in repo root = `com.mi.xttechsettings` target APK (~8MB, tracked via `!app-debug.apk` gitignore exception)
