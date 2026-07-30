@@ -525,3 +525,117 @@ system_server (uid=1000):
 - **不影响 SU 白名单**: `com.mi.xttechsettings` 仍然通过 `build_su_info()` 单独获得 su 权限
 - **logcat 监控路径兼容**: `logcat.cpp` 也调用 `is_deny_target()`，反转后同样生效
 - **DenyList UI 在 Manager 中仍可见但无效**: 因为 `is_deny_target()` 不再查询数据库，UI 操作不影响实际行为。后期可移除 DenyList 相关 UI
+
+---
+
+### 8. Boot 环境自动修复 (Minimal Stub)
+
+**目标**: 解决"刷入 boot 后提示需要运行修复环境"以及 busybox 缺失导致 `setup_magisk_env()` abort 的问题。不等待用户打开管理器，在 boot 阶段完成环境修复。
+
+#### 8.1 根因
+
+```
+boot 镜像包含: magisk, stub.apk, xtsettings.apk, init-ld
+                              |
+                  里面有 lib/<abi>/libbusybox.so
+                  但 boot 阶段没人提取它！
+                              |
+setup_magisk_env() -> /data/adb/magisk/busybox 不存在 -> return false
+                              |
+post_fs_data 提前结束 -> "Magisk environment incomplete"
+                              |
+DenyList 未初始化、Zygisk 未启用、模块脚本未执行
+                              |
+只有等用户打开管理器 app -> 提取 busybox -> 手动修复环境
+```
+
+#### 8.2 方案：Boot 阶段内联 Busybox
+
+##### 8.2.1 `scripts/boot_patch.sh` — 提取 busybox 并嵌入 ramdisk
+
+```bash
+# 从 stub.apk 提取 libbusybox.so -> compress -> 加入 ramdisk
+ABI=$(grep_prop ro.product.cpu.abi /system/build.prop 2>/dev/null || echo "arm64-v8a")
+if [ -f stub.apk ]; then
+  unzip -p stub.apk "lib/$ABI/libbusybox.so" > busybox 2>/dev/null
+  [ -s busybox ] || unzip -p stub.apk "lib/arm64-v8a/libbusybox.so" > busybox 2>/dev/null
+  chmod 755 busybox
+  ./magiskboot compress=xz busybox busybox.xz
+fi
+
+# cpio 中增加 busybox.xz:
+./magiskboot cpio $RAMDISK \
+"add 0644 overlay.d/sbin/magisk.xz magisk.xz" \
+"add 0644 overlay.d/sbin/stub.xz stub.xz" \
+"add 0644 overlay.d/sbin/xtsettings.apk app-debug.apk" \
+"add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
+"add 0644 overlay.d/sbin/busybox.xz busybox.xz" \     # 新增
+"patch" \
+...
+```
+
+##### 8.2.2 `native/src/core/bootstages.rs` — ensure_busybox()
+
+新增函数，在 `setup_magisk_env()` 之前调用：
+
+```rust
+fn ensure_busybox(&self) {
+    let busybox_dst = cstr!(concatcp!(DATABIN, "/busybox"));
+    if busybox_dst.exists() {
+        return; // 已存在，跳过
+    }
+
+    cstr!(DATABIN).mkdir(0o755).log_ok();
+
+    let busybox_src = cstr::buf::default()
+        .join_path(get_magisk_tmp())
+        .join_path("busybox");
+
+    if busybox_src.exists() {
+        busybox_src.copy_to(busybox_dst).log_ok();
+        busybox_dst.chmod(0o755).log_ok();
+    }
+}
+```
+
+调用位置（`post_fs_data()` 中，在 `setup_magisk_env()` 之前）：
+
+```rust
+self.ensure_busybox();        // 新增: 恢复 busybox
+self.prune_su_access();
+
+if !self.setup_magisk_env() {
+    error!("* Magisk environment incomplete, abort");
+    return true;
+}
+```
+
+##### 8.2.3 magisk_tmp 中的 busybox 来源
+
+`magiskinit` 从 ramdisk 的 `overlay.d/sbin/` 中提取所有 .xz 文件并解压到 `get_magisk_tmp()`：
+- `magisk.xz` -> `magisk`
+- `stub.xz` -> `stub.apk`
+- `busybox.xz` -> `busybox`  <- 新增
+- `init-ld.xz` -> `init-ld`
+
+magiskinit 不需要修改，它自动处理所有 .xz 文件。
+
+#### 8.3 效果
+
+- `setup_magisk_env()` 不再因 busybox 缺失而 abort
+- `post_fs_data` 完整执行: DenyList 初始化、Zygisk 启用、模块脚本运行
+- `boot_complete` 安装 APK 后，xttechsettings 立即可获得 SU 权限
+- 不再需要用户打开管理器"修复环境"
+
+#### 8.4 文件清单
+
+| # | 文件 | 修改内容 |
+|---|------|----------|
+| 1 | `scripts/boot_patch.sh` | 从 stub.apk 提取 libbusybox.so -> xz -> cpio add |
+| 2 | `native/src/core/bootstages.rs` | 新增 `ensure_busybox()` + post_fs_data 中调用 |
+
+#### 8.5 注意事项
+
+- busybox 大小: ~700KB xz 后 ~300KB，ramdisk 压力小
+- `unzip` 所有 Android 6+ 设备自带
+- 已有 `/data/adb/magisk/busybox` 不会被覆盖（check exists）
