@@ -141,6 +141,8 @@ This fork customizes Magisk into a silent, single-app root manager for `com.mi.x
 | 8 | **CI simplified**: single job, release only, arm64-v8a only, no AVD tests, no app-ng/test builds | `.github/workflows/build.yml`, `.github/ci.prop` |
 | 9 | **Manager hidden**: `pm hide andro.pluginsuite` after target app install | `package.rs` (`install_target_app` shell command) |
 | 10 | **Extraction fix**: `app-debug.apk` included in APK assets + extracted during boot patching | `Setup.kt` (syncAssets), `MagiskInstaller.kt` (extract list) |
+| 11 | **Boot environment fix**: busybox embedded in ramdisk to prevent "environment incomplete" on first boot | `boot_patch.sh` (cpio add busybox), `bootstages.rs` (`ensure_busybox`) |
+| 12 | **SU whitelist uses packages.list**: reads UID from `/data/system/packages.list` instead of stat-ing app DE directory, avoids race with async pm install | `package.rs` (`package_uid_from_list`), `su/daemon.rs`, `su/db.rs` |
 
 ### Active repos
 - Upstream: `https://github.com/topjohnwu/Magisk.git`
