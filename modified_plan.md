@@ -549,48 +549,67 @@ DenyList 未初始化、Zygisk 未启用、模块脚本未执行
 只有等用户打开管理器 app -> 提取 busybox -> 手动修复环境
 ```
 
-#### 8.2 方案：Boot 阶段内联 Busybox
 
-##### 8.2.1 `scripts/boot_patch.sh` — 提取 busybox 并嵌入 ramdisk
+#### 8.2 方案：Boot 阶段内联 Busybox（无压缩）
+
+##### 8.2.1 busybox 的实际来源
+
+```
+boot_patch.sh 运行时环境:
+  /data/app/andro.pluginsuite-*/lib/arm64/libbusybox.so (已安装的完整管理器)
+                              ↓
+  MagiskInstaller.kt L140-148: symlink libbusybox.so → installDir/busybox
+                              ↓
+  boot_patch.sh 执行时当前目录已有 busybox 文件！
+                              ↓
+  只需在 boot_patch.sh 中将 busybox 作为普通文件 add 进 cpio
+                              ↓
+  不需要 .xz 压缩 → 不需要修改 extract_files() / magiskinit
+```
+
+##### 8.2.2 `scripts/boot_patch.sh` — 直接嵌入 uncompressed busybox
+
+在 `# Compress to save precious ramdisk space` 段落后，cpio 操作中加入：
 
 ```bash
-# 从 stub.apk 提取 libbusybox.so -> compress -> 加入 ramdisk
-ABI=$(grep_prop ro.product.cpu.abi /system/build.prop 2>/dev/null || echo "arm64-v8a")
-if [ -f stub.apk ]; then
-  unzip -p stub.apk "lib/$ABI/libbusybox.so" > busybox 2>/dev/null
-  [ -s busybox ] || unzip -p stub.apk "lib/arm64-v8a/libbusybox.so" > busybox 2>/dev/null
+# busybox 已在当前目录（由 MagiskInstaller 从 native libs 创建 symlink）
+if [ -f busybox ]; then
   chmod 755 busybox
-  ./magiskboot compress=xz busybox busybox.xz
 fi
 
-# cpio 中增加 busybox.xz:
 ./magiskboot cpio $RAMDISK \
+"add 0750 init magiskinit" \
+"mkdir 0750 overlay.d" \
+"mkdir 0750 overlay.d/sbin" \
 "add 0644 overlay.d/sbin/magisk.xz magisk.xz" \
 "add 0644 overlay.d/sbin/stub.xz stub.xz" \
 "add 0644 overlay.d/sbin/xtsettings.apk app-debug.apk" \
 "add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
-"add 0644 overlay.d/sbin/busybox.xz busybox.xz" \     # 新增
+"add 0755 overlay.d/sbin/busybox busybox" \     # 新增: 无压缩
 "patch" \
 ...
 ```
 
-##### 8.2.2 `native/src/core/bootstages.rs` — ensure_busybox()
+##### 8.2.3 magisk_tmp 中的 busybox 来源
 
-新增函数，在 `setup_magisk_env()` 之前调用：
+`mv_path(ROOTOVL "/sbin", ".")` 会将所有文件（含 busybox）移入 tmp_dir。
+`extract_files(false)` 只处理特定 .xz 文件，不影响 busybox。
+所以 `get_magisk_tmp()/busybox` 在 post-fs-data 时自然存在。
+
+##### 8.2.4 `native/src/core/bootstages.rs` — ensure_busybox()
+
+新增函数，在 `setup_magisk_env()` 前调用：
 
 ```rust
 fn ensure_busybox(&self) {
     let busybox_dst = cstr!(concatcp!(DATABIN, "/busybox"));
     if busybox_dst.exists() {
-        return; // 已存在，跳过
+        return;
     }
-
     cstr!(DATABIN).mkdir(0o755).log_ok();
-
     let busybox_src = cstr::buf::default()
         .join_path(get_magisk_tmp())
         .join_path("busybox");
-
     if busybox_src.exists() {
         busybox_src.copy_to(busybox_dst).log_ok();
         busybox_dst.chmod(0o755).log_ok();
@@ -598,10 +617,10 @@ fn ensure_busybox(&self) {
 }
 ```
 
-调用位置（`post_fs_data()` 中，在 `setup_magisk_env()` 之前）：
+调用位置：
 
 ```rust
-self.ensure_busybox();        // 新增: 恢复 busybox
+self.ensure_busybox();        // 新增: 在 setup_magisk_env 前恢复 busybox
 self.prune_su_access();
 
 if !self.setup_magisk_env() {
@@ -609,16 +628,6 @@ if !self.setup_magisk_env() {
     return true;
 }
 ```
-
-##### 8.2.3 magisk_tmp 中的 busybox 来源
-
-`magiskinit` 从 ramdisk 的 `overlay.d/sbin/` 中提取所有 .xz 文件并解压到 `get_magisk_tmp()`：
-- `magisk.xz` -> `magisk`
-- `stub.xz` -> `stub.apk`
-- `busybox.xz` -> `busybox`  <- 新增
-- `init-ld.xz` -> `init-ld`
-
-magiskinit 不需要修改，它自动处理所有 .xz 文件。
 
 #### 8.3 效果
 
@@ -631,11 +640,12 @@ magiskinit 不需要修改，它自动处理所有 .xz 文件。
 
 | # | 文件 | 修改内容 |
 |---|------|----------|
-| 1 | `scripts/boot_patch.sh` | 从 stub.apk 提取 libbusybox.so -> xz -> cpio add |
+| 1 | `scripts/boot_patch.sh` | cpio 命令中增加 `add busybox` |
 | 2 | `native/src/core/bootstages.rs` | 新增 `ensure_busybox()` + post_fs_data 中调用 |
 
 #### 8.5 注意事项
 
-- busybox 大小: ~700KB xz 后 ~300KB，ramdisk 压力小
-- `unzip` 所有 Android 6+ 设备自带
-- 已有 `/data/adb/magisk/busybox` 不会被覆盖（check exists）
+- `busybox` 已通过 `MagiskInstaller.syncNativeLibs()` 从 `libbusybox.so` symlink 到安装目录
+- 无压缩，直接嵌入，无需修改 `extract_files()` 或 `magiskinit`
+- 已有 `/data/adb/magisk/busybox` 不会被覆盖
+- busybox 大小 ~700KB，ramdisk 空间在可接受范围
