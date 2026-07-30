@@ -175,11 +175,11 @@ object UpdateChannelUrl : BaseSettingsItem.Input() {
         .inflate(LayoutInflater.from(context)).also { it.data = this }.root
 }
 
-object UpdateChecker : BaseSettingsItem.Toggle() {
-    override val title = CoreR.string.settings_check_update_title.asText()
-    override val description = CoreR.string.settings_check_update_summary.asText()
-    override var value by Config::checkUpdate
-}
+// object UpdateChecker : BaseSettingsItem.Toggle() {
+//    override val title = CoreR.string.settings_check_update_title.asText()
+//    override val description = CoreR.string.settings_check_update_summary.asText()
+//    override var value by Config::checkUpdate
+// }
 
 object DoHToggle : BaseSettingsItem.Toggle() {
     override val title = CoreR.string.settings_doh_title.asText()
