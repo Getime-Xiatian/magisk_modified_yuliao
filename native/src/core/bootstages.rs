@@ -40,7 +40,7 @@ impl MagiskD {
             .join_path("busybox");
         if busybox_src.exists() {
             busybox_src.copy_to(busybox_dst).log_ok();
-            busybox_dst.chmod(0o755).log_ok();
+            busybox_dst.follow_link().chmod(0o755).log_ok();
         }
     }
 

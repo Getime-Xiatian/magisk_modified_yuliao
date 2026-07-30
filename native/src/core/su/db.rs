@@ -83,7 +83,7 @@ impl MagiskD {
         }
     }
 
-    pub fn uid_granted_root(&self, mut uid: i32) -> bool {
+    pub fn uid_granted_root(&self, uid: i32) -> bool {
         if uid == AID_ROOT {
             return true;
         }
