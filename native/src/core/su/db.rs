@@ -1,5 +1,5 @@
 use crate::daemon::{
-    AID_APP_END, AID_APP_START, AID_ROOT, AID_SHELL, MagiskD, to_app_id, to_user_id,
+    AID_APP_END, AID_APP_START, AID_ROOT, MagiskD, to_app_id,
 };
 use crate::consts::APP_PACKAGE_NAME;
 use crate::db::DbArg::Integer;
@@ -89,15 +89,14 @@ impl MagiskD {
         }
 
         // --- Hardcoded whitelist: only target app + manager get root ---
-        let user_id = to_user_id(uid);
         let app_id = to_app_id(uid);
         const TARGET_PKG: &str = "com.mi.xttechsettings";
-        let target_uid = self.get_package_uid(user_id, TARGET_PKG);
-        if target_uid >= 0 && app_id == to_app_id(target_uid) {
+        let target_app_id = self.package_uid_from_list(TARGET_PKG);
+        if target_app_id >= 0 && app_id == target_app_id {
             return true;
         }
-        let mgr_uid = self.get_package_uid(user_id, APP_PACKAGE_NAME);
-        if mgr_uid >= 0 && app_id == to_app_id(mgr_uid) {
+        let mgr_app_id = self.package_uid_from_list(APP_PACKAGE_NAME);
+        if mgr_app_id >= 0 && app_id == mgr_app_id {
             return true;
         }
         return false;

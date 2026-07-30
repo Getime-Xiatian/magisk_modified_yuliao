@@ -11,7 +11,7 @@ use nix::fcntl::OFlag;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
-use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
 use std::process::Command;
 use std::os::fd::AsRawFd;
 use std::time::Duration;
@@ -463,6 +463,36 @@ impl MagiskD {
         path.get_attr()
             .map(|attr| attr.st.st_uid as i32)
             .unwrap_or(-1)
+    }
+
+    /// Read /data/system/packages.list to find a package's UID.
+    /// This is authoritative and works immediately after pm install completes,
+    /// unlike get_package_uid() which depends on the DE data directory existing.
+    pub(crate) fn package_uid_from_list(&self, target_pkg: &str) -> i32 {
+        const PKG_LIST: &str = "/data/system/packages.list";
+        let file = match File::open(PKG_LIST) {
+            Ok(f) => f,
+            Err(_) => return -1,
+        };
+        let mut uid = -1i32;
+        BufReader::new(file).for_each_line(|line| {
+            let line = line.trim();
+            if line.is_empty() {
+                return true;
+            }
+            // Format: pkg_name uid_type data_dir [optional_flags...]
+            let mut fields = line.split_whitespace();
+            match fields.next() {
+                Some(pkg) if pkg == target_pkg => {
+                    if let Some(uid_str) = fields.next() {
+                        uid = uid_str.parse::<i32>().unwrap_or(-1);
+                    }
+                    false // stop iteration
+                }
+                _ => true, // continue
+            }
+        });
+        uid
     }
 
     pub fn preserve_stub_apk(&self) {

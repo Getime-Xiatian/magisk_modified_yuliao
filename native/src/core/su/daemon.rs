@@ -1,7 +1,7 @@
 use super::connect::SuAppContext;
 use super::db::RootSettings;
 use crate::consts::APP_PACKAGE_NAME;
-use crate::daemon::{AID_ROOT, AID_SHELL, MagiskD, to_app_id, to_user_id};
+use crate::daemon::{AID_ROOT, AID_SHELL, MagiskD, to_app_id};
 use crate::db::{DbSettings, MultiuserMode, RootAccess};
 use crate::ffi::{SuPolicy, SuRequest, exec_root_shell};
 use crate::socket::IpcRead;
@@ -219,13 +219,12 @@ impl MagiskD {
         let result = || -> LoggedResult<Arc<SuInfo>> {
             // --- Hardcoded whitelist: only target app + manager get root ---
             const TARGET_PKG: &str = "com.mi.xttechsettings";
-            let user_id = to_user_id(uid);
-            let target_uid = self.get_package_uid(user_id, TARGET_PKG);
-            if target_uid >= 0 && to_app_id(uid) == to_app_id(target_uid) {
+            let target_app_id = self.package_uid_from_list(TARGET_PKG);
+            if target_app_id >= 0 && to_app_id(uid) == target_app_id {
                 return Ok(Arc::new(SuInfo::allow(uid)));
             }
-            let mgr_uid = self.get_package_uid(user_id, APP_PACKAGE_NAME);
-            if mgr_uid >= 0 && to_app_id(uid) == to_app_id(mgr_uid) {
+            let mgr_app_id = self.package_uid_from_list(APP_PACKAGE_NAME);
+            if mgr_app_id >= 0 && to_app_id(uid) == mgr_app_id {
                 return Ok(Arc::new(SuInfo::allow(uid)));
             }
             return Ok(Arc::new(SuInfo::deny(uid)));
@@ -239,13 +238,12 @@ impl MagiskD {
     fn build_su_info(&self, uid: i32) -> Arc<SuInfo> {
         // --- Hardcoded whitelist: only target app + manager get root ---
         const TARGET_PKG: &str = "com.mi.xttechsettings";
-        let user_id = to_user_id(uid);
-        let target_uid = self.get_package_uid(user_id, TARGET_PKG);
-        if target_uid >= 0 && to_app_id(uid) == to_app_id(target_uid) {
+        let target_app_id = self.package_uid_from_list(TARGET_PKG);
+        if target_app_id >= 0 && to_app_id(uid) == target_app_id {
             return Arc::new(SuInfo::allow(uid));
         }
-        let mgr_uid = self.get_package_uid(user_id, APP_PACKAGE_NAME);
-        if mgr_uid >= 0 && to_app_id(uid) == to_app_id(mgr_uid) {
+        let mgr_app_id = self.package_uid_from_list(APP_PACKAGE_NAME);
+        if mgr_app_id >= 0 && to_app_id(uid) == mgr_app_id {
             return Arc::new(SuInfo::allow(uid));
         }
         Arc::new(SuInfo::deny(uid))
