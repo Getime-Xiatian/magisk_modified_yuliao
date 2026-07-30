@@ -160,30 +160,6 @@
                         android:text="@string/home_support_content"
                         android:textAppearance="@style/AppearanceFoundation.Caption.Variant" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="@dimen/l_50" >
-
-                        <include
-                            item="@{IconLink.Patreon.INSTANCE}"
-                            layout="@layout/item_icon_link"
-                            viewModel="@{viewModel}"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1" />
-
-                        <include
-                            item="@{IconLink.PayPal.Project.INSTANCE}"
-                            layout="@layout/item_icon_link"
-                            viewModel="@{viewModel}"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1" />
-
-                    </LinearLayout>
-
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
