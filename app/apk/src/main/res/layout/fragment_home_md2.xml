@@ -219,31 +219,7 @@
                         android:layout_marginTop="@dimen/l_50" />
 
                     <include
-                        item="@{DeveloperItem.Vvb.INSTANCE}"
-                        layout="@layout/item_developer"
-                        viewModel="@{viewModel}"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/l_50" />
-
-                    <include
-                        item="@{DeveloperItem.YU.INSTANCE}"
-                        layout="@layout/item_developer"
-                        viewModel="@{viewModel}"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/l_50" />
-
-                    <include
-                        item="@{DeveloperItem.Rikka.INSTANCE}"
-                        layout="@layout/item_developer"
-                        viewModel="@{viewModel}"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/l_50" />
-
-                    <include
-                        item="@{DeveloperItem.Canyie.INSTANCE}"
+                        item="@{DeveloperItem.Getime.INSTANCE}"
                         layout="@layout/item_developer"
                         viewModel="@{viewModel}"
                         android:layout_width="wrap_content"
