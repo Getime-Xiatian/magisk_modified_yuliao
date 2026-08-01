@@ -2,7 +2,7 @@ name: Magisk Build
 
 on:
   push:
-    branches: [master]
+    branches: [master, no-embedded-apk]
     paths:
       - "app/**"
       - "native/**"
