@@ -7,6 +7,7 @@ on:
       - "app/**"
       - "native/**"
       - "build.py"
+      - "scripts/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
 
