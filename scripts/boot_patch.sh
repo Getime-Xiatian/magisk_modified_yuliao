@@ -192,7 +192,6 @@ fi
 "mkdir 0750 overlay.d" \
 "mkdir 0750 overlay.d/sbin" \
 "add 0644 overlay.d/sbin/magisk.xz magisk.xz" \
-# "add 0644 overlay.d/sbin/xtsettings.apk app-debug.apk" \
 "add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
 "add 0755 overlay.d/sbin/busybox busybox" \
 "patch" \
@@ -200,6 +199,7 @@ fi
 "mkdir 000 .backup" \
 "add 000 .backup/.magisk config" \
 || abort "! Unable to patch ramdisk"
+# Note: xtsettings.apk embedding disabled (no boot-stage APK install)
 
 rm -f ramdisk.cpio.orig config *.xz
 
