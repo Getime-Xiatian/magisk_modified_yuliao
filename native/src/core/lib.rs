@@ -40,6 +40,7 @@ mod selinux;
 mod socket;
 mod su;
 mod thread;
+mod white_list;
 mod zygisk;
 
 #[allow(clippy::needless_lifetimes)]

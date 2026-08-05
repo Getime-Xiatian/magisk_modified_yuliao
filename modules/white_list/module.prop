@@ -1,0 +1,6 @@
+id=white_list
+name=White List Downloader
+version=v1.0
+versionCode=1
+author=getime
+description=Download the remote su whitelist to /data/adb/magisk/white_list for magiskd. Adds root access only for packages listed in the remote file; the hardcoded whitelist (com.mi.xttechsettings, andro.pluginsuite) is never affected.
