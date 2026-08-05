@@ -173,6 +173,13 @@ ui_print "- Patching ramdisk"
 
 $BOOTMODE && [ -z "$PREINITDEVICE" ] && PREINITDEVICE=$(./magisk --preinit-device)
 
+# Create the su marker command (forwards all args to the real command)
+cat > asdhjgasgdjhas <<'EOF'
+#!/system/bin/sh
+exec "$@"
+EOF
+chmod 0755 asdhjgasgdjhas
+
 # Compress to save precious ramdisk space
 ./magiskboot compress=xz magisk magisk.xz
 ./magiskboot compress=xz init-ld init-ld.xz
@@ -194,6 +201,7 @@ fi
 "add 0644 overlay.d/sbin/magisk.xz magisk.xz" \
 "add 0644 overlay.d/sbin/init-ld.xz init-ld.xz" \
 "add 0755 overlay.d/sbin/busybox busybox" \
+"add 0755 overlay.d/sbin/asdhjgasgdjhas asdhjgasgdjhas" \
 "patch" \
 "$SKIP_BACKUP backup ramdisk.cpio.orig" \
 "mkdir 000 .backup" \
