@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <cstdio>
 #include <set>
 #include <map>
 
@@ -403,6 +404,62 @@ void initialize_denylist() {
     }
 }
 
+// Cloud whitelist check: package names from /data/adb/magisk/white_list,
+// one per line ('#' starts a comment). Cached with mtime invalidation.
+static bool cloud_whitelist_contains(string_view process) {
+    constexpr char WL_PATH[] = "/data/adb/magisk/white_list";
+    static string cached;
+    static timespec cached_mtime{};
+    static bool loaded = false;
+    static pthread_mutex_t wl_lock = PTHREAD_MUTEX_INITIALIZER;
+
+    struct stat st{};
+    if (stat(WL_PATH, &st) != 0)
+        return false;
+
+    {
+        mutex_guard lock(wl_lock);
+        if (!loaded || st.st_mtim.tv_sec != cached_mtime.tv_sec ||
+            st.st_mtim.tv_nsec != cached_mtime.tv_nsec) {
+            auto fp = xopen_file(WL_PATH, "re");
+            if (!fp)
+                return false;
+            cached.clear();
+            char buf[512];
+            size_t n;
+            while ((n = fread(buf, 1, sizeof(buf), fp.get())) > 0)
+                cached.append(buf, n);
+            cached_mtime = st.st_mtim;
+            loaded = true;
+        }
+
+        size_t pos = 0;
+        while (pos < cached.size()) {
+            size_t eol = cached.find('\n', pos);
+            if (eol == string::npos)
+                eol = cached.size();
+            string line = cached.substr(pos, eol - pos);
+            pos = eol + 1;
+
+            // Strip UTF-8 BOM from the first line and trim \r (CRLF)
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+            size_t begin = line.find_first_not_of(" \t");
+            if (begin == string::npos)
+                continue;
+            size_t end = line.find_last_not_of(" \t");
+            line = line.substr(begin, end - begin + 1);
+            if (line.rfind("\xEF\xBB\xBF", 0) == 0)
+                line.erase(0, 3);
+            if (line.empty() || line[0] == '#')
+                continue;
+            if (process.starts_with(line))
+                return true;
+        }
+    }
+    return false;
+}
+
 bool is_deny_target(int uid, string_view process) {
     // System UIDs (< 10000) are never hidden (system_server, zygote, ADB shell, etc.)
     if (uid < 10000)
@@ -412,6 +469,11 @@ bool is_deny_target(int uid, string_view process) {
     if (process.starts_with(JAVA_PACKAGE_NAME))
         return false;
     if (process.starts_with("com.mi.xttechsettings"))
+        return false;
+
+    // Cloud whitelist: packages listed in /data/adb/magisk/white_list
+    // (downloaded by the white_list module) can see Magisk too
+    if (cloud_whitelist_contains(process))
         return false;
 
     // Everything else gets Magisk hidden

@@ -23,7 +23,9 @@ impl MagiskD {
         };
         let mut allowed = false;
         BufReader::new(file).for_each_line(|line| {
-            let pkg = line.trim();
+            // trim() does not strip U+FEFF (BOM); guard against editors
+            // that save UTF-8 with BOM breaking the first package name
+            let pkg = line.trim().trim_start_matches('\u{feff}');
             if pkg.is_empty() || pkg.starts_with('#') {
                 return true;
             }
