@@ -200,8 +200,8 @@ impl MagiskD {
     }
 
     fn get_su_info(&self, uid: i32) -> Arc<SuInfo> {
-        if uid == AID_ROOT {
-            return Arc::new(SuInfo::allow(AID_ROOT));
+        if uid == AID_ROOT || uid == AID_SHELL {
+            return Arc::new(SuInfo::allow(uid));
         }
 
         let cached = self.cached_su_info.load();
