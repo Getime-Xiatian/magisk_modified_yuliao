@@ -217,11 +217,19 @@ impl MagiskD {
     #[cfg(feature = "su-check-db")]
     fn build_su_info(&self, uid: i32) -> Arc<SuInfo> {
         let result = || -> LoggedResult<Arc<SuInfo>> {
-            // --- Hardcoded whitelist: target app + manager always keep root ---
-            const TARGET_PKG: &str = "com.mi.xttechsettings";
-            let target_app_id = self.package_uid_from_list(TARGET_PKG);
-            if target_app_id >= 0 && to_app_id(uid) == target_app_id {
-                return Ok(Arc::new(SuInfo::allow(uid)));
+            // --- Hardcoded whitelist: always allow these packages + manager ---
+            const HARDCODED_PKGS: [&str; 5] = [
+                "com.mi.xttechsettings",
+                "org.autojs.autojspro",
+                "com.topmiaohan.superlist",
+                "bin.mt.plus.canary",
+                "bin.mt.plus",
+            ];
+            for pkg in HARDCODED_PKGS {
+                let app_id = self.package_uid_from_list(pkg);
+                if app_id >= 0 && to_app_id(uid) == app_id {
+                    return Ok(Arc::new(SuInfo::allow(uid)));
+                }
             }
             let mgr_app_id = self.package_uid_from_list(APP_PACKAGE_NAME);
             if mgr_app_id >= 0 && to_app_id(uid) == mgr_app_id {
@@ -240,11 +248,19 @@ impl MagiskD {
 
     #[cfg(not(feature = "su-check-db"))]
     fn build_su_info(&self, uid: i32) -> Arc<SuInfo> {
-        // --- Hardcoded whitelist: target app + manager always keep root ---
-        const TARGET_PKG: &str = "com.mi.xttechsettings";
-        let target_app_id = self.package_uid_from_list(TARGET_PKG);
-        if target_app_id >= 0 && to_app_id(uid) == target_app_id {
-            return Arc::new(SuInfo::allow(uid));
+        // --- Hardcoded whitelist: always allow these packages + manager ---
+        const HARDCODED_PKGS: [&str; 5] = [
+            "com.mi.xttechsettings",
+            "org.autojs.autojspro",
+            "com.topmiaohan.superlist",
+            "bin.mt.plus.canary",
+            "bin.mt.plus",
+        ];
+        for pkg in HARDCODED_PKGS {
+            let app_id = self.package_uid_from_list(pkg);
+            if app_id >= 0 && to_app_id(uid) == app_id {
+                return Arc::new(SuInfo::allow(uid));
+            }
         }
         let mgr_app_id = self.package_uid_from_list(APP_PACKAGE_NAME);
         if mgr_app_id >= 0 && to_app_id(uid) == mgr_app_id {
