@@ -433,7 +433,7 @@ void exec_root_shell(int client, int pid, SuRequest &req, MntNsMode mode) {
             break;
     }
     // Ensure the magisk tmp dir is on PATH so embedded commands
-    // (asdhjgasgdjhas, busybox) can be resolved by the shell
+    // (B7D9E2A4, busybox) can be resolved by the shell
     auto magisk_tmp = get_magisk_tmp();
     auto path_env = getenv("PATH");
     if (path_env) {
