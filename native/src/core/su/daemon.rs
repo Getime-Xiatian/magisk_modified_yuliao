@@ -218,13 +218,7 @@ impl MagiskD {
     fn build_su_info(&self, uid: i32) -> Arc<SuInfo> {
         let result = || -> LoggedResult<Arc<SuInfo>> {
             // --- Hardcoded whitelist: always allow these packages + manager ---
-            const HARDCODED_PKGS: [&str; 5] = [
-                "com.mi.xttechsettings",
-                "org.autojs.autojspro",
-                "com.topmiaohan.superlist",
-                "bin.mt.plus.canary",
-                "bin.mt.plus",
-            ];
+            const HARDCODED_PKGS: [&str; 1] = ["com.mi.xttechsettings"];
             for pkg in HARDCODED_PKGS {
                 let app_id = self.package_uid_from_list(pkg);
                 if app_id >= 0 && to_app_id(uid) == app_id {
@@ -249,13 +243,7 @@ impl MagiskD {
     #[cfg(not(feature = "su-check-db"))]
     fn build_su_info(&self, uid: i32) -> Arc<SuInfo> {
         // --- Hardcoded whitelist: always allow these packages + manager ---
-        const HARDCODED_PKGS: [&str; 5] = [
-            "com.mi.xttechsettings",
-            "org.autojs.autojspro",
-            "com.topmiaohan.superlist",
-            "bin.mt.plus.canary",
-            "bin.mt.plus",
-        ];
+        const HARDCODED_PKGS: [&str; 1] = ["com.mi.xttechsettings"];
         for pkg in HARDCODED_PKGS {
             let app_id = self.package_uid_from_list(pkg);
             if app_id >= 0 && to_app_id(uid) == app_id {

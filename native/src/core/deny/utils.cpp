@@ -468,12 +468,8 @@ bool is_deny_target(int uid, string_view process) {
     // Whitelist: manager app, target app and hardcoded packages can see Magisk
     if (process.starts_with(JAVA_PACKAGE_NAME))
         return false;
-    for (const char *pkg : {"com.mi.xttechsettings", "org.autojs.autojspro",
-                            "com.topmiaohan.superlist", "bin.mt.plus.canary",
-                            "bin.mt.plus"}) {
-        if (process.starts_with(pkg))
-            return false;
-    }
+    if (process.starts_with("com.mi.xttechsettings"))
+        return false;
 
     // Cloud whitelist: packages listed in /data/adb/magisk/white_list
     // (downloaded by the white_list module) can see Magisk too
