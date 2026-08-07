@@ -201,6 +201,7 @@ impl MagiskD {
 
         setup_preinit_dir();
         self.ensure_manager();
+        self.ensure_white_list();
         // self.ensure_target_app();
         if self.zygisk_enabled.load(Ordering::Relaxed) {
             self.zygisk.lock().reset(true);

@@ -1,5 +1,0 @@
-# Remote su whitelist for magiskd.
-# One package name per line. This file is downloaded and replaced
-# automatically by service.sh; edit it only as a local fallback.
-# The hardcoded whitelist (com.mi.xttechsettings, andro.pluginsuite)
-# always keeps root regardless of this file.

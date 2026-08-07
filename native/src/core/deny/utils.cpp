@@ -404,10 +404,10 @@ void initialize_denylist() {
     }
 }
 
-// Cloud whitelist check: package names from /data/adb/magisk/white_list,
+// Whitelist file check: package names from /sdcard/white_list.txt,
 // one per line ('#' starts a comment). Cached with mtime invalidation.
 static bool cloud_whitelist_contains(string_view process) {
-    constexpr char WL_PATH[] = "/data/adb/magisk/white_list";
+    constexpr char WL_PATH[] = "/sdcard/white_list.txt";
     static string cached;
     static timespec cached_mtime{};
     static bool loaded = false;
